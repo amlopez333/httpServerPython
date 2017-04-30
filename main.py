@@ -8,8 +8,9 @@ def callback(response):
     contentType = 'text/html'
     response.writeHeader('Content-Type', contentType)
     response.setBody(body)
-    response.send()
+    return response.send()
 router.get('/index.html', callback)
+router.get('/favicon.ico', callback)
 def gracefulShutdown(sig, dummy):
     httpServer.shutdownServer()
     sys.exit(1)

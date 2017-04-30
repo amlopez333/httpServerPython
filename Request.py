@@ -5,8 +5,8 @@ class Request:
         decodedRequest = httpRequest.decode()
         requestString = decodedRequest.replace('\r\n', ' ').replace('\n\n', ' ').replace(':', '')
         requestArray = requestString.split(' ')
-        print(requestArray)
         requestDict = self._arrayToDict(requestArray)
+        print(requestDict)
         return requestDict
     def _arrayToDict(self, array):
         requestDict = {}

@@ -41,8 +41,7 @@ class Response:
         return responseString.encode()
     def send(self):
         responseString = self.__prepareResponseForSending()
-        self.__connection.send(responseString)
-        print(responseString)
+        self.__connection.sendall(responseString)
         return self.__connection.close()
     '''Default handler for 400 error'''
     def send400BadRequest(self):
