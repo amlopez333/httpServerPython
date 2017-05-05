@@ -38,6 +38,7 @@ class Response:
         responseString = responseHeaders
         if(sendBody):
             responseString += self.__response['body']
+        print(responseString)
         return responseString.encode()
     def send(self):
         responseString = self.__prepareResponseForSending()

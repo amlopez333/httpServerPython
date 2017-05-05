@@ -1,21 +1,26 @@
+from collections import OrderedDict
 class Request:
     def __init__(self, httpRequest):
         self._request = self._processRequest(httpRequest)
     def _processRequest(self, httpRequest):
         decodedRequest = httpRequest.decode()
-        requestString = decodedRequest.replace('\r\n', ' ').replace('\n\n', ' ').replace(':', '')
-        requestArray = requestString.split(' ')
+        print(decodedRequest)
+        requestString = decodedRequest.replace('\n\n', '\r\n')
+        requestArray = requestString.split('\r\n')
         requestDict = self._arrayToDict(requestArray)
         print(requestDict)
         return requestDict
     def _arrayToDict(self, array):
-        requestDict = {}
+        requestDict = OrderedDict()
         if(array[0] != ''):
-            requestDict = {'method': array[0]}
-            requestDict['route'] = array[1]
-            requestDict['protocol'] = array[2]
-            for i in range(3, len(array)-1, 2):
-                requestDict[array[i]] = array[i + 1]
+            method, route, protocol = array[0].split(' ')
+            requestDict['method'] = method
+            requestDict['route'] = route
+            requestDict['protocol'] = protocol
+        for i in range(1, len(array)-2, 1):
+            headerValue = array[i].split(':', 1)
+            header, value = headerValue[0], headerValue[1].lstrip()
+            requestDict[header] = value
         return requestDict
     def __getitem__(self, key):
         return self._request.get(key)

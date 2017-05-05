@@ -29,7 +29,7 @@ class serveRequests(Thread):
 class Server:
     def __init__(self, router,  port = 8080, configFile = None):
         self.__router = router
-        self.__host = '' or '192.168.1.109'    
+        self.__host = '127.0.0.1' or '192.168.1.109'    
         self.__port = port
         mimetypes.init()
         self.__mimetypes = mimetypes.types_map
