@@ -4,12 +4,11 @@ import time
 import mimetypes
 import Request
 import Response
+import Logger
 import re
 from queue import Queue
 from threading import Thread
-import os
-import select
-from multiprocessing.pool import Pool
+
 class serveRequests(Thread):
     def __init__(self, queue, handler):
         Thread.__init__(self)
@@ -18,18 +17,15 @@ class serveRequests(Thread):
     def run(self):
         while True:
             connection, host, port = self.queue.get()
-            request = Request.Request(connection.recv(1024))
-            #print(connection.recv(1024).decode())
+            request = Request.Request(connection.recv(4096))
             connection = self.handler(request, connection, host, port)
             self.queue.task_done()
-            #time.sleep(20)
 
-            
-
-class Server:
-    def __init__(self, router,  port = 8080, configFile = None):
+class HttpServer:
+    def __init__(self, router,  host = None, port = 8080, configFile = None):
+        
         self.__router = router
-        self.__host = '127.0.0.1' or '192.168.1.109'    
+        self.__host = host or '127.0.0.1'    
         self.__port = port
         mimetypes.init()
         self.__mimetypes = mimetypes.types_map
@@ -44,7 +40,7 @@ class Server:
         self.listenForever()
     def shutdownServer(self):
         try:
-            server.__socket.shutdown(socket.SHUT_RDWR)
+            self.__socket.shutdown(socket.SHUT_RDWR)
         except Exception as e:
             print('nOPe', e)
         finally:
@@ -53,31 +49,27 @@ class Server:
         while True:
             print('HTTP server listenting on {0}:{1}'.format(self.__host, self.__port))
             queue = Queue()
-            
+            self.__socket.listen(5)    
             for x in range(5):
                 worker = serveRequests(queue, self.handleRequest)
                 worker.daemon = True
-                worker.start()
-            self.__socket.listen(5)           
+                worker.start()       
             connection, address = self.__socket.accept()
-            queue.put((connection, self.__host, self.__port))
-            
-        queue.join()
-            # self.__socket.listen(5)
-            # connection, address = self.__socket.accept()
-            # data = connection.recv(4096)
-            # print(bytes.decode(data))
-            # request = Request.Request(data)
-            # connection = self.handleRequest(request, connection)
-            #time.sleep(15)
-
-         
-        return 0    
+            queue.put((connection, self.__host, self.__port), 5)
+            #queue.join()
+        return 0
+    '''Request handler used to serve requests.'''     
     def handleRequest(self, request, connection, host, port):
-        if(request.keys() == ''):
-            print('bunga')
+        if(len(request.keys()) == 0):
+            return 0
+        log = Logger.Logger()
         method = request['method']
-        route = request['route']
+        route = request['route'] 
+        server = '{0}:{1}'.format(host, port)
+        referrer = request['Referer'] or ''
+        data = request['params'] or request['body']
+        host = request['Host']
+        log.log({'method': method, 'timestamp': time.time(), 'server': server, 'host': host, 'referrer': referrer, 'url': route, 'data': data})
         response = Response.Response(connection, self.__host, self.__port)
         if(not 'Host' in request.keys()):
             return response.send400BadRequest()
@@ -103,19 +95,17 @@ class Server:
             isValid = False
             resourceExtension = re.match('.*(\.[a-z]*)', route)
             if(not resourceExtension):
-                print('noResourceExtensions')
                 return response.send406NotAcceptable()
             resourceExtension = resourceExtension.group(1)
             for mimeType in contentType:
-                print(mimeType, resourceExtension)
                 if(mimeType == self.__mimetypes[resourceExtension]):
                     isValid = True
                     break
+            if(contentType == self.__mimetypes[resourceExtension]):
+                    isValid = True
             if(not isValid):
                 print('not a valid resource for type')
                 return response.send406NotAcceptable()
         response.setStatusCode(200)
-        return self.__router[method].get(route)(response)
-        
-#server = Server()
-#server.initiateServer()
+        return self.__router[method].get(route)(request, response)
+

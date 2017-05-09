@@ -21,17 +21,19 @@ class Router:
     def post(self, route, callback):
         self.__routes['POST'][route] = callback
     '''sets the default callback for GET request with URI = /'''
-    def __defaultGetCallback(self, response):
+    def __defaultGetCallback(self, request, response):
         body = '<h1>ESTE ES EL SERVIDOR LOCAL DE LA CASA LOPEZ URENA</h1>\r\n'
         contentType = 'text/html'
         response.writeHeader('Content-Type', contentType)
         #response.writeHeader('Connection', 'close')
-        response.setBody(body)
+        response.setBody(body.encode())
         return response.send()
     def __defaultGet(self):
         self.__routes['GET']['/'] = self.__defaultGetCallback
     def __getitem__(self, key):
         return self.__routes.get(key)
+    def getKeys(self):
+        return self.__routes.keys
     def getKnownMethods(self):
         return self.__knownMethods
 

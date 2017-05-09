@@ -1,4 +1,5 @@
 import time
+from collections import OrderedDict
 class Response:
     _statusCodes = {
                     200: '200 OK',
@@ -12,11 +13,14 @@ class Response:
     }
     def __init__(self, connection, host, port):
         currentDate = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
-        self.__response = {'headers': {'protocol': 'HTTP/1.1', 'statusCode': '',
-                                      'Date': 'Date: {}'.format(currentDate) ,
-                                      'Server': 'Server: {0}:{1}'.format(host, port),
-                                      'Content-Length': {},
-                                      'Content-Type': {}},
+        orderedDict = OrderedDict()
+        orderedDict['protocol'] = 'HTTP/1.1'
+        orderedDict['statusCode'] = ''
+        orderedDict['Date'] = 'Date: {}'.format(currentDate)
+        orderedDict['Server'] = 'Server: {0}:{1}'.format(host, port)
+        orderedDict['Content-Length'] = {}
+        orderedDict['Content-Type'] = {}
+        self.__response = {'headers': orderedDict,
                           'body': ''}
         self.__connection = connection
     def __setitem__(self, key, value):
@@ -31,18 +35,19 @@ class Response:
         self.__response['body'] = bodyContent
     def writeHeader(self, header, content):
         self.__response['headers'][header] = '{0}: {1}'.format(header, str(content))
-    def __prepareResponseForSending(self, sendBody = True):
+    def __prepareResponseForSending(self, sendBody):
         contentLength = len(self.__response['body'])
         self.__response['headers']['Content-Length'] = 'Content-Length: {}'.format(str(contentLength))
-        responseHeaders = '\r\n'.join(self.__response['headers'].values()).replace('\r\n', ' ', 1) + '\r\n\n\n'
+        self.__response['headers']['Connection'] = 'Connection: close'
+        responseHeaders = '\r\n'.join(self.__response['headers'].values()).replace('\r\n', ' ', 1) + '\r\n\r\n'
         responseString = responseHeaders
+        responseString = responseString.encode()
         if(sendBody):
             responseString += self.__response['body']
-        print(responseString)
-        return responseString.encode()
-    def send(self):
-        responseString = self.__prepareResponseForSending()
-        self.__connection.sendall(responseString)
+        return responseString
+    def send(self, sendBody = True):
+        responseString = self.__prepareResponseForSending(sendBody)
+        self.__connection.send(responseString)
         return self.__connection.close()
     '''Default handler for 400 error'''
     def send400BadRequest(self):
@@ -50,8 +55,7 @@ class Response:
         body = '<h1>400 Bad Request</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
     '''Default handler for 404 error'''
     def send404NotFound(self):
@@ -59,8 +63,7 @@ class Response:
         body = '<h1>404 Not Found</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
     '''Default handler for 406 error'''
     def send406NotAcceptable(self):
@@ -68,8 +71,7 @@ class Response:
         body = '<h1>406 Not Acceptable</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
     '''Default handler for 405 error'''
     def send405MethodNotAllowed(self):
@@ -77,8 +79,7 @@ class Response:
         body = '<h1>405 Method Not Allowed</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
     '''Default handler for 500 error'''
     def send500InternalServerError(self):
@@ -86,8 +87,7 @@ class Response:
         body = '<h1>500 Internal Server Error</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
     '''Default handler for 503 error'''
     def send503NotImplemented(self):
@@ -95,6 +95,5 @@ class Response:
         body = '<h1>503 Not Implemented</h1>\r\n'
         contentType = 'text/html'
         self.writeHeader('Content-Type', contentType)
-        self.setBody(body)
-        responseString = self.__prepareResponseForSending()
+        self.setBody(body.encode())
         return self.send()
